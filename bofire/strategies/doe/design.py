@@ -113,8 +113,16 @@ def find_local_max_ipopt(
         model_type=model_type, rhs_only=True, domain=domain
     )
 
+<<<<<<< HEAD
     d_optimality = DOptimality(
         domain=domain, model=model_formula, n_experiments=n_experiments, delta=delta
+=======
+    J = JacobianForLogdet(
+        domain,
+        model_formula,
+        n_experiments,
+        delta=delta,
+>>>>>>> 6a0b268 (more general jacobian, update to new formulaic version)
     )
 
     # write constraints as scipy constraints
