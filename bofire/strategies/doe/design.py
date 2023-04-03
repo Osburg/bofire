@@ -12,7 +12,8 @@ from bofire.data_models.enum import SamplingMethodEnum
 from bofire.data_models.strategies.api import (
     PolytopeSampler as PolytopeSamplerDataModel,
 )
-from bofire.strategies.doe.objective import DOptimality
+from bofire.strategies.api import PolytopeSampler
+from bofire.strategies.doe.jacobian import JacobianForLogdet
 from bofire.strategies.doe.utils import (
     constraints_as_scipy_constraints,
     get_formula_from_string,
@@ -123,6 +124,10 @@ def find_local_max_ipopt(
         n_experiments,
         delta=delta,
 >>>>>>> 6a0b268 (more general jacobian, update to new formulaic version)
+    )
+
+    d_optimality = DOptimality(
+        domain=domain, model=model_formula, n_experiments=n_experiments, delta=delta
     )
 
     # write constraints as scipy constraints
