@@ -3,9 +3,12 @@ from copy import deepcopy
 import numpy as np
 import pandas as pd
 <<<<<<< HEAD:bofire/strategies/doe/objective.py
+<<<<<<< HEAD:bofire/strategies/doe/objective.py
 =======
 import scipy as sp
 >>>>>>> 7c363a1 (reorganize jacobian, use autograd for jacobian):bofire/strategies/doe/jacobian.py
+=======
+>>>>>>> 918c07b (remove old jacobian implementation):bofire/strategies/doe/jacobian.py
 import torch
 from formulaic import Formula
 from torch import Tensor
@@ -14,6 +17,7 @@ from bofire.data_models.domain.api import Domain
 from bofire.utils.torch_tools import tkwargs
 
 
+<<<<<<< HEAD:bofire/strategies/doe/objective.py
 class DOptimality:
     """A class implementing the evaluation of logdet(X.T@X + delta) and its jacobian w.r.t. the inputs.
     The Jacobian can be divided into two parts, one for logdet(X.T@ + delta) w.r.t. X (there is a simple
@@ -162,6 +166,8 @@ class DOptimality:
     return model_jacobian_t
 
 
+=======
+>>>>>>> 918c07b (remove old jacobian implementation):bofire/strategies/doe/jacobian.py
 # TODO: test
 class DOptimality:
     """A class implementing the evaluation of logdet(X.T@X + delta) and its jacobian w.r.t. the inputs.
