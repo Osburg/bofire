@@ -14,10 +14,14 @@ from bofire.data_models.strategies.api import (
 )
 from bofire.strategies.api import PolytopeSampler
 <<<<<<< HEAD
+<<<<<<< HEAD
 from bofire.strategies.doe.jacobian import JacobianForLogdet
 =======
 from bofire.strategies.doe.jacobian import DOptimality
 >>>>>>> 918c07b (remove old jacobian implementation)
+=======
+from bofire.strategies.doe.objective import DOptimality
+>>>>>>> bea589e (fix imports)
 from bofire.strategies.doe.utils import (
     constraints_as_scipy_constraints,
     get_formula_from_string,
