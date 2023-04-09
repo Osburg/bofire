@@ -153,9 +153,13 @@ class NChooseKConstraint(Constraint):
         violation.backward(torch.ones(experiments_tensor.shape[0]))
 
 <<<<<<< HEAD
+<<<<<<< HEAD
         jacobian = experiments_tensor.grad.detach().numpy()  # type: ignore
 =======
         jacobian = experiments_tensor.grad.detach().numpy()
 >>>>>>> af0bbec (allow relaxed NChooseK constraints in doe)
+=======
+        jacobian = experiments_tensor.grad.detach().numpy()  # type: ignore
+>>>>>>> c0951e4 (reformattig, solve pyright complaints)
 
         return pd.DataFrame(jacobian, columns=[f"dg/d{name}" for name in self.features])
