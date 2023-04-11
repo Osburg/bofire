@@ -16,11 +16,24 @@ from bofire.data_models.constraints.api import (
     NonlinearInequalityConstraint,
 )
 from bofire.data_models.domain.api import Domain
+<<<<<<< HEAD
 from bofire.data_models.features.api import ContinuousInput
 from bofire.data_models.strategies.api import (
     PolytopeSampler as PolytopeSamplerDataModel,
 )
 from bofire.strategies.samplers.polytope import PolytopeSampler
+=======
+from bofire.data_models.features.api import (
+    CategoricalInput,
+    ContinuousOutput,
+    DiscreteInput,
+    MolecularInput,
+)
+from bofire.data_models.strategies.api import (
+    PolytopeSampler as PolytopeSamplerDataModel,
+)
+from bofire.strategies.api import PolytopeSampler
+>>>>>>> fda3566 (handle MolecularInputs in doe)
 
 
 def get_formula_from_string(
@@ -494,6 +507,7 @@ def check_nchoosek_constraints_as_bounds(domain: Domain) -> None:
                 isinstance(input, CategoricalInput)
                 or isinstance(input, ContinuousOutput)
                 or isinstance(input, MolecularInput)
+                or isinstance(input, DiscreteInput)
             ):
                 if input.bounds[0] > 0 or input.bounds[1] < 0:
                     raise ValueError(
@@ -542,6 +556,7 @@ def nchoosek_constraints_as_bounds(
                 isinstance(p, CategoricalInput)
                 or isinstance(p, ContinuousOutput)
                 or isinstance(p, MolecularInput)
+                or isinstance(p, DiscreteInput)
             )
         ]
         * n_experiments
