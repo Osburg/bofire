@@ -34,6 +34,7 @@ from bofire.strategies.samplers.polytope import PolytopeSampler
 >>>>>>> 918c07b (remove old jacobian implementation)
 
 
+
 def find_local_max_ipopt(
     domain: Domain,
     model_type: Union[str, Formula],
