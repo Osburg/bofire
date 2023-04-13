@@ -12,6 +12,7 @@ from bofire.data_models.enum import SamplingMethodEnum
 from bofire.data_models.strategies.api import (
     PolytopeSampler as PolytopeSamplerDataModel,
 )
+<<<<<<< HEAD
 from bofire.strategies.api import PolytopeSampler
 <<<<<<< HEAD
 <<<<<<< HEAD
@@ -20,6 +21,8 @@ from bofire.strategies.doe.jacobian import JacobianForLogdet
 from bofire.strategies.doe.jacobian import DOptimality
 >>>>>>> 918c07b (remove old jacobian implementation)
 =======
+=======
+>>>>>>> 033babd (fix imports)
 from bofire.strategies.doe.objective import DOptimality
 >>>>>>> bea589e (fix imports)
 from bofire.strategies.doe.utils import (
@@ -29,10 +32,14 @@ from bofire.strategies.doe.utils import (
     nchoosek_constraints_as_bounds,
 )
 <<<<<<< HEAD
+<<<<<<< HEAD
 from bofire.strategies.samplers.polytope import PolytopeSampler
 =======
 >>>>>>> 918c07b (remove old jacobian implementation)
 
+=======
+from bofire.strategies.samplers.polytope import PolytopeSampler
+>>>>>>> 033babd (fix imports)
 
 
 def find_local_max_ipopt(
