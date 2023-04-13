@@ -18,6 +18,9 @@ from torch import Tensor
 
 from bofire.data_models.domain.api import Domain
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> 423ecbe (suggestions from Johannes' review)
 from bofire.utils.torch_tools import tkwargs
 
 
@@ -222,7 +225,7 @@ class DOptimality:
     ) -> None:
         """
         Args:
-            domain (Domain): An opti domain defining the DoE domain together with model_type.
+            domain (Domain): A domain defining the DoE domain together with model_type.
             model_type (str or Formula): A formula containing all model terms.
             n_experiments (int): Number of experiments
             delta (float): A regularization parameter for the information matrix. Default value is 1e-3.
@@ -268,7 +271,7 @@ class DOptimality:
             log(det(X.T@X+delta))
 
         """
-        X = self._convert_input_to_model_tensor(x)
+        X = self._convert_input_to_model_tensor(x, requires_grad=False)
         return float(
             -1
             * torch.logdet(
@@ -287,7 +290,7 @@ class DOptimality:
             The jacobian of log(det(X.T@X+delta)) as numpy array
         """
         # get model matrix X
-        X = self._convert_input_to_model_tensor(x)
+        X = self._convert_input_to_model_tensor(x, requires_grad=True)
 
         # first part of jacobian
         torch.logdet(X.T @ X + self.delta * torch.eye(self.n_model_terms)).backward()
@@ -305,7 +308,9 @@ class DOptimality:
 
         return J.flatten()
 
-    def _convert_input_to_model_tensor(self, x: np.ndarray) -> Tensor:
+    def _convert_input_to_model_tensor(
+        self, x: np.ndarray, requires_grad: bool = True
+    ) -> Tensor:
         X = pd.DataFrame(
 <<<<<<< HEAD
             x.reshape(len(x) // self.n_vars, self.n_vars), columns=self.vars
@@ -314,9 +319,7 @@ class DOptimality:
 >>>>>>> 964c5fb (refactoring)
         )
         X = self.model.get_model_matrix(X)
-        return torch.tensor(
-            X.values, dtype=torch.double, device="cpu", requires_grad=True
-        )
+        return torch.tensor(X.values, requires_grad=requires_grad, **tkwargs)
 
     def _model_jacobian_t(self, x: np.ndarray) -> np.ndarray:
         """Computes the transpose of the model jacobian for each experiment in input x."""

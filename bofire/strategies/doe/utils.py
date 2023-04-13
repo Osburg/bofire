@@ -17,6 +17,7 @@ from bofire.data_models.constraints.api import (
 )
 from bofire.data_models.domain.api import Domain
 <<<<<<< HEAD
+<<<<<<< HEAD
 from bofire.data_models.features.api import ContinuousInput
 from bofire.data_models.strategies.api import (
     PolytopeSampler as PolytopeSamplerDataModel,
@@ -29,6 +30,9 @@ from bofire.data_models.features.api import (
     DiscreteInput,
     MolecularInput,
 )
+=======
+from bofire.data_models.features.api import ContinuousInput
+>>>>>>> 423ecbe (suggestions from Johannes' review)
 from bofire.data_models.strategies.api import (
     PolytopeSampler as PolytopeSamplerDataModel,
 )
@@ -497,11 +501,15 @@ def check_nchoosek_constraints_as_bounds(domain: Domain) -> None:
         for name in np.unique(c.features):
             input = domain.inputs.get_by_key(name)
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> 423ecbe (suggestions from Johannes' review)
             if input.bounds[0] > 0 or input.bounds[1] < 0:  # type: ignore
                 raise ValueError(
                     f"Constraint {c} cannot be formulated as bounds. 0 must be inside the \
                     domain of the affected decision variables."
                 )
+<<<<<<< HEAD
 =======
             if not (
                 isinstance(input, CategoricalInput)
@@ -515,6 +523,8 @@ def check_nchoosek_constraints_as_bounds(domain: Domain) -> None:
                         domain of the affected decision variables."
                     )
 >>>>>>> 6a0b268 (more general jacobian, update to new formulaic version)
+=======
+>>>>>>> 423ecbe (suggestions from Johannes' review)
 
     # check if the parameter names of two nchoose overlap
     for c in nchoosek_constraints:
@@ -547,6 +557,7 @@ def nchoosek_constraints_as_bounds(
     # bounds without NChooseK constraints
     bounds = np.array(
 <<<<<<< HEAD
+<<<<<<< HEAD
         [p.bounds for p in domain.inputs.get(ContinuousInput)] * n_experiments  # type: ignore
 =======
         [
@@ -561,6 +572,9 @@ def nchoosek_constraints_as_bounds(
         ]
         * n_experiments
 >>>>>>> 6a0b268 (more general jacobian, update to new formulaic version)
+=======
+        [p.bounds for p in domain.inputs.get(ContinuousInput)] * n_experiments  # type: ignore
+>>>>>>> 423ecbe (suggestions from Johannes' review)
     )
 
     if len(domain.cnstrs) > 0:
