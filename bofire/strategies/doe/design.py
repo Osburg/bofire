@@ -26,7 +26,6 @@ def find_local_max_ipopt(
     domain: Domain,
     model_type: Union[str, Formula],
     n_experiments: Optional[int] = None,
-    tol: float = 0.0,
     delta: float = 1e-7,
     ipopt_options: Dict = {},
     sampling: Optional[pd.DataFrame] = None,
@@ -40,7 +39,6 @@ def find_local_max_ipopt(
             are "linear", "linear-and-interactions", "linear-and-quadratic", "fully-quadratic".
         n_experiments (int): Number of experiments. By default the value corresponds to
             the number of model terms - dimension of ker() + 3.
-        tol (float): Tolerance for linear/NChooseK constraint violation. Default value is 0.
         delta (float): Regularization parameter. Default value is 1e-3.
         ipopt_options (Dict): options for IPOPT. For more information see [this link](https://coin-or.github.io/Ipopt/OPTIONS.html)
         sampling (Sampling, np.ndarray): Sampling class or a np.ndarray object containing the initial guess.
@@ -123,7 +121,7 @@ def find_local_max_ipopt(
 
     # write constraints as scipy constraints
     constraints = constraints_as_scipy_constraints(
-        domain, n_experiments, tol, ignore_nchoosek=True
+        domain, n_experiments, ignore_nchoosek=True
     )
 
     # find bounds imposing NChooseK constraints

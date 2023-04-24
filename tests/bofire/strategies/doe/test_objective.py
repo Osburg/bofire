@@ -9,7 +9,6 @@ from bofire.strategies.doe.objective import (
     DOptimality,
     EOptimality,
     GOptimality,
-    KOptimality,
     Objective,
 )
 from bofire.strategies.doe.utils import get_formula_from_string
@@ -696,17 +695,3 @@ def test_GOptimality_evaluate_jacobian():
     # thus, the jacobian vanishes.
 
     assert np.allclose(g_optimality.evaluate_jacobian(x), np.zeros(2))
-
-
-def test_KOptimality_evaluate():
-    domain = Domain(
-        input_features=[ContinuousInput(key="x1", bounds=(0, 1))],
-        output_features=[ContinuousOutput(key="y")],
-    )
-    model = get_formula_from_string("linear", domain=domain)
-
-    k_optimality = KOptimality(domain=domain, model=model, n_experiments=2, delta=0)
-
-    x = np.array([1, 0])
-
-    assert np.allclose(k_optimality.evaluate(x), 1.61803399 / 0.61803399)

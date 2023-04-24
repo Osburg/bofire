@@ -262,8 +262,8 @@ def test_constraints_as_scipy_constraints():
         assert len(c.ub) == n_experiments
 
     A = np.array([[1, 1, 1, 0, 0, 0], [0, 0, 0, 1, 1, 1]]) / np.sqrt(3)
-    lb = np.array([1, 1]) / np.sqrt(3) - 0.001
-    ub = np.array([1, 1]) / np.sqrt(3) + 0.001
+    lb = np.array([1, 1]) / np.sqrt(3)
+    ub = np.array([1, 1]) / np.sqrt(3)
     assert np.allclose(constraints[0].A, A)
     assert np.allclose(constraints[0].lb, lb)
     assert np.allclose(constraints[0].ub, ub)
@@ -372,7 +372,7 @@ def test_ConstraintWrapper():
     x = np.array([[1, 1, 1, 1], [0.5, 0.5, 0.5, 0.5], [3, 2, 1, 0]]).flatten()
 
     # linear equality
-    c = ConstraintWrapper(domain.constraints[0], domain, tol=0, n_experiments=3)
+    c = ConstraintWrapper(domain.constraints[0], domain, n_experiments=3)
     assert np.allclose(c(x), np.array([1.5, 0.5, 2.5]))
     assert np.allclose(
         c.jacobian(x),
@@ -387,7 +387,7 @@ def test_ConstraintWrapper():
     )
 
     # linear inequality
-    c = ConstraintWrapper(domain.constraints[1], domain, tol=0, n_experiments=3)
+    c = ConstraintWrapper(domain.constraints[1], domain, n_experiments=3)
     assert np.allclose(c(x), np.array([1.5, 0.5, 2.5]))
     assert np.allclose(
         c.jacobian(x),
@@ -402,7 +402,7 @@ def test_ConstraintWrapper():
     )
 
     # nonlinear equality
-    c = ConstraintWrapper(domain.constraints[2], domain, tol=0, n_experiments=3)
+    c = ConstraintWrapper(domain.constraints[2], domain, n_experiments=3)
     assert np.allclose(c(x), np.array([3, 0, 13]))
     assert np.allclose(
         c.jacobian(x),
@@ -416,7 +416,7 @@ def test_ConstraintWrapper():
     )
 
     # nonlinear inequality
-    c = ConstraintWrapper(domain.constraints[3], domain, tol=0, n_experiments=3)
+    c = ConstraintWrapper(domain.constraints[3], domain, n_experiments=3)
     assert np.allclose(c(x), np.array([3, 0, 13]))
     assert np.allclose(
         c.jacobian(x),
@@ -430,12 +430,12 @@ def test_ConstraintWrapper():
     )
 
     # nchoosek constraint
-    c = ConstraintWrapper(domain.constraints[4], domain, tol=0, n_experiments=3)
+    c = ConstraintWrapper(domain.constraints[4], domain, n_experiments=3)
     assert np.allclose(c(x), np.array([1, 1, 0]))
     assert np.allclose(c.jacobian(x), np.zeros(shape=(3, 12)))
 
     # constraint not containing all inputs from domain
-    c = ConstraintWrapper(domain.constraints[5], domain, tol=0, n_experiments=3)
+    c = ConstraintWrapper(domain.constraints[5], domain, n_experiments=3)
     assert np.allclose(c(x), np.array([1, -0.5, 8]))
     assert np.allclose(
         c.jacobian(x),
@@ -447,9 +447,6 @@ def test_ConstraintWrapper():
             ]
         ),
     )
-
-
-test_ConstraintWrapper()
 
 
 def test_d_optimality():
