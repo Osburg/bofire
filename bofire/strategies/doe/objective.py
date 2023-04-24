@@ -415,6 +415,31 @@ class KOptimality(Objective):
         return J.flatten()
 
 
+# TODO: test
+class SpaceFilling(Objective):
+
+    # TODO: how many values should be taken into account. 1 is not enough. Right now it is n_experiments, this seems to work.
+    def evaluate(self, x: np.ndarray) -> float:
+        X = self._convert_input_to_tensor(x, requires_grad=False)
+        return float(
+            -torch.sum(torch.sort(torch.pdist(X.detach()))[0][: self.n_experiments])
+        )
+
+    def evaluate_jacobian(self, x: np.ndarray) -> float:
+        X = self._convert_input_to_tensor(x, requires_grad=True)
+        torch.sum(torch.sort(torch.pdist(X))[0][: self.n_experiments]).backward()
+
+        return -X.grad.detach().numpy().flatten() # type: ignore
+
+    def _convert_input_to_tensor(
+        self, x: np.ndarray, requires_grad: bool = True
+    ) -> Tensor:
+        X = pd.DataFrame(
+            x.reshape(len(x.flatten()) // self.n_vars, self.n_vars), columns=self.vars
+        )
+        return torch.tensor(X.values, requires_grad=requires_grad, **tkwargs)
+
+
 def get_objective_class(objective: str) -> Type:
     objective = objective.lower()
 
@@ -428,5 +453,7 @@ def get_objective_class(objective: str) -> Type:
         return EOptimality
     elif objective == "k":
         return KOptimality
+    elif objective == "sf":
+        return SpaceFilling
     else:
         raise ValueError(f"No objective type for keyword {objective} is known.")
