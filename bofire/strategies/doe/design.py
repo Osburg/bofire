@@ -13,6 +13,7 @@ from bofire.data_models.strategies.api import (
     PolytopeSampler as PolytopeSamplerDataModel,
 )
 <<<<<<< HEAD
+<<<<<<< HEAD
 from bofire.strategies.api import PolytopeSampler
 <<<<<<< HEAD
 <<<<<<< HEAD
@@ -25,6 +26,9 @@ from bofire.strategies.doe.jacobian import DOptimality
 >>>>>>> 033babd (fix imports)
 from bofire.strategies.doe.objective import DOptimality
 >>>>>>> bea589e (fix imports)
+=======
+from bofire.strategies.doe.objective import get_objective_class
+>>>>>>> 42260a9 (add more objectives)
 from bofire.strategies.doe.utils import (
     constraints_as_scipy_constraints,
     get_formula_from_string,
@@ -51,6 +55,7 @@ def find_local_max_ipopt(
     ipopt_options: Dict = {},
     sampling: Optional[pd.DataFrame] = None,
     fixed_experiments: Optional[pd.DataFrame] = None,
+    objective: str = "d",
 ) -> pd.DataFrame:
     """Function computing a d-optimal design" for a given domain and model.
     Args:
@@ -65,6 +70,8 @@ def find_local_max_ipopt(
         sampling (Sampling, np.ndarray): Sampling class or a np.ndarray object containing the initial guess.
         fixed_experiments (pd.DataFrame): dataframe containing experiments that will be definitely part of the design.
             Values are set before the optimization.
+        objective (str): Keyword indicating which objective function to use. Valid keywords are "d" for D-optimality, "e" for E-optimality
+            "g" for G-optimality and "a" for A-optimality. Defaults to "d".
     Returns:
         A pd.DataFrame object containing the best found input for the experiments. In general, this is only a
         local optimum.
@@ -135,6 +142,7 @@ def find_local_max_ipopt(
 
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
     d_optimality = DOptimality(
         domain=domain, model=model_formula, n_experiments=n_experiments, delta=delta
 =======
@@ -149,6 +157,10 @@ def find_local_max_ipopt(
 =======
 >>>>>>> 918c07b (remove old jacobian implementation)
     d_optimality = DOptimality(
+=======
+    objective_class = get_objective_class(objective=objective)
+    d_optimality = objective_class(
+>>>>>>> 42260a9 (add more objectives)
         domain=domain, model=model_formula, n_experiments=n_experiments, delta=delta
     )
 
