@@ -1,4 +1,6 @@
+from abc import abstractmethod
 from copy import deepcopy
+from typing import Type
 
 import numpy as np
 import pandas as pd
@@ -8,11 +10,8 @@ from torch import Tensor
 
 from bofire.data_models.domain.api import Domain
 from bofire.utils.torch_tools import tkwargs
-from abc import abstractmethod
 
-from typing import Type
 
-# TODO: test
 class Objective:
     def __init__(
         self,
@@ -57,7 +56,7 @@ class Objective:
 
     def __call__(self, x: np.ndarray) -> float:
         return self.evaluate(x)
-    
+
     @abstractmethod
     def evaluate(self, x: np.ndarray) -> float:
         pass
@@ -82,7 +81,6 @@ class Objective:
         return np.swapaxes(jacobians, 1, 2)
 
 
-# TODO: test changes
 class DOptimality(Objective):
     """A class implementing the evaluation of logdet(X.T@X + delta) and its jacobian w.r.t. the inputs.
     The Jacobian can be divided into two parts, one for logdet(X.T@ + delta) w.r.t. X (there is a simple
@@ -126,7 +124,9 @@ class DOptimality(Objective):
         n_experiments: int,
         delta: float = 1e-7,
     ) -> None:
-        super().__init__(domain=domain, model=model, n_experiments=n_experiments, delta=delta)
+        super().__init__(
+            domain=domain, model=model, n_experiments=n_experiments, delta=delta
+        )
 
     def evaluate(self, x: np.ndarray) -> float:
         """Computes the minus one times the sum of the log of the eigenvalues of X.T @ X + delta.
@@ -176,8 +176,7 @@ class DOptimality(Objective):
 
         return J.flatten()
 
-# TODO: test
-# TODO: avoid explicitly calculating the Fisher matrix inverse as formerly done for the DOptimality jacobain? --> try!
+
 class AOptimality(Objective):
     """A class implementing the evaluation of tr((X.T@X + delta)^-1) and its jacobian w.r.t. the inputs.
     The jacobian evaluation is done analogously to DOptimality with the first part of the jacobian being
@@ -196,7 +195,14 @@ class AOptimality(Objective):
 
         """
         X = self._convert_input_to_model_tensor(x, requires_grad=False)
-        return float(torch.trace(torch.linalg.inv(X.detach().T @ X.detach() + self.delta * torch.eye(self.n_model_terms))))
+        return float(
+            torch.trace(
+                torch.linalg.inv(
+                    X.detach().T @ X.detach()
+                    + self.delta * torch.eye(self.n_model_terms)
+                )
+            )
+        )
 
     def evaluate_jacobian(self, x: np.ndarray) -> np.ndarray:
         """Computes the jacobian of the trace of the inverse of X.T @ X + delta.
@@ -212,7 +218,9 @@ class AOptimality(Objective):
         X = self._convert_input_to_model_tensor(x, requires_grad=True)
 
         # first part of jacobian
-        torch.trace(torch.linalg.inv(X.T @ X + self.delta * torch.eye(self.n_model_terms))).backward()
+        torch.trace(
+            torch.linalg.inv(X.T @ X + self.delta * torch.eye(self.n_model_terms))
+        ).backward()
         J1 = X.grad.detach().numpy()  # type: ignore
         J1 = np.repeat(J1, self.n_vars, axis=0).reshape(
             self.n_experiments, self.n_vars, self.n_model_terms
@@ -223,16 +231,15 @@ class AOptimality(Objective):
 
         # combine both parts
         J = J1 * J2
-        J = np.sum(J, axis=-1)  
+        J = np.sum(J, axis=-1)
 
-        return J.flatten()      
+        return J.flatten()
 
-# TODO: test
-# TODO: avoid explicitly calculating the Fisher matrix inverse as formerly done for the DOptimality jacobain? --> try!
+
 class GOptimality(Objective):
-    """A class implementing the evaluation of max(diag(H)) and its jacobian w.r.t. the inputs where 
-    H = X @ (X.T@X + delta)^-1 @ X.T is the (regularized) hat matrix. The jacobian evaluation is done analogously 
-    to DOptimality with the first part of the jacobian being the jacobian of max(diag(H)) instead of 
+    """A class implementing the evaluation of max(diag(H)) and its jacobian w.r.t. the inputs where
+    H = X @ (X.T@X + delta)^-1 @ X.T is the (regularized) hat matrix. The jacobian evaluation is done analogously
+    to DOptimality with the first part of the jacobian being the jacobian of max(diag(H)) instead of
     logdet(X.T@X + delta).
     """
 
@@ -248,9 +255,14 @@ class GOptimality(Objective):
 
         """
         X = self._convert_input_to_model_tensor(x, requires_grad=False)
-        H = X.detach() @ torch.linalg.inv(X.detach().T @ X.detach() + self.delta * torch.eye(self.n_model_terms)) @ X.detach().T
+        H = (
+            X.detach()
+            @ torch.linalg.inv(
+                X.detach().T @ X.detach() + self.delta * torch.eye(self.n_model_terms)
+            )
+            @ X.detach().T
+        )
         return float(torch.max(torch.diag(H)))
-        
 
     def evaluate_jacobian(self, x: np.ndarray) -> np.ndarray:
         """Computes the jacobian of the maximum diagonal element of H = X @ (X.T @ X + delta)^-1 @ X.T.
@@ -266,7 +278,13 @@ class GOptimality(Objective):
         X = self._convert_input_to_model_tensor(x, requires_grad=True)
 
         # first part of jacobian
-        torch.max(torch.diag(X @ torch.linalg.inv(X.T @ X + self.delta * torch.eye(self.n_model_terms)) @ X.T)).backward()
+        torch.max(
+            torch.diag(
+                X
+                @ torch.linalg.inv(X.T @ X + self.delta * torch.eye(self.n_model_terms))
+                @ X.T
+            )
+        ).backward()
         J1 = X.grad.detach().numpy()  # type: ignore
         J1 = np.repeat(J1, self.n_vars, axis=0).reshape(
             self.n_experiments, self.n_vars, self.n_model_terms
@@ -277,16 +295,15 @@ class GOptimality(Objective):
 
         # combine both parts
         J = J1 * J2
-        J = np.sum(J, axis=-1)   
+        J = np.sum(J, axis=-1)
 
-        return J.flatten() 
-      
+        return J.flatten()
 
-# TODO: test
+
 class EOptimality(Objective):
     """A class implementing the evaluation of minus one times the minimum eigenvalue of (X.T @ X + delta)
     and its jacobian w.r.t. the inputs. The jacobian evaluation is done analogously to DOptimality with the
-    first part of the jacobian being the jacobian of the smallest eigenvalue of (X.T @ X + delta) instead of 
+    first part of the jacobian being the jacobian of the smallest eigenvalue of (X.T @ X + delta) instead of
     logdet(X.T@X + delta).
     """
 
@@ -301,7 +318,14 @@ class EOptimality(Objective):
             min(eigvals(X.T @ X + delta))
         """
         X = self._convert_input_to_model_tensor(x, requires_grad=False)
-        return -1 * float(torch.min(torch.linalg.eigvalsh(X.detach().T @ X.detach() + self.delta * torch.eye(self.n_model_terms))))
+        return -1 * float(
+            torch.min(
+                torch.linalg.eigvalsh(
+                    X.detach().T @ X.detach()
+                    + self.delta * torch.eye(self.n_model_terms)
+                )
+            )
+        )
 
     def evaluate_jacobian(self, x: np.ndarray) -> np.ndarray:
         """Computes the jacobian of minus one times the minimum eigenvalue of (X.T @ X + delta).
@@ -317,7 +341,9 @@ class EOptimality(Objective):
         X = self._convert_input_to_model_tensor(x, requires_grad=True)
 
         # first part of jacobian
-        torch.min(torch.linalg.eigvalsh(X.T @ X + self.delta * torch.eye(self.n_model_terms))).backward()
+        torch.min(
+            torch.linalg.eigvalsh(X.T @ X + self.delta * torch.eye(self.n_model_terms))
+        ).backward()
         J1 = -1 * X.grad.detach().numpy()  # type: ignore
         J1 = np.repeat(J1, self.n_vars, axis=0).reshape(
             self.n_experiments, self.n_vars, self.n_model_terms
@@ -332,10 +358,10 @@ class EOptimality(Objective):
 
         return J.flatten()
 
-# TODO: test
+
 class KOptimality(Objective):
     """A class implementing the evaluation of the condition number of (X.T @ X + delta)
-    and its jacobian w.r.t. the inputs. The jacobian evaluation is done analogously to 
+    and its jacobian w.r.t. the inputs. The jacobian evaluation is done analogously to
     DOptimality with the first part of the jacobian being the jacobian of condition number
     of (X.T @ X + delta) instead of logdet(X.T@X + delta).
     """
@@ -351,7 +377,11 @@ class KOptimality(Objective):
             cond(X.T @ X + delta)
         """
         X = self._convert_input_to_model_tensor(x, requires_grad=False)
-        return float(torch.linalg.cond(X.detach().T @ X.detach() + self.delta * torch.eye(self.n_model_terms)))
+        return float(
+            torch.linalg.cond(
+                X.detach().T @ X.detach() + self.delta * torch.eye(self.n_model_terms)
+            )
+        )
 
     def evaluate_jacobian(self, x: np.ndarray) -> np.ndarray:
         """Computes the jacobian of the condition number of (X.T @ X + delta).
@@ -367,7 +397,9 @@ class KOptimality(Objective):
         X = self._convert_input_to_model_tensor(x, requires_grad=True)
 
         # first part of jacobian
-        torch.linalg.cond(X.T @ X + self.delta * torch.eye(self.n_model_terms)).backward()
+        torch.linalg.cond(
+            X.T @ X + self.delta * torch.eye(self.n_model_terms)
+        ).backward()
         J1 = X.grad.detach().numpy()  # type: ignore
         J1 = np.repeat(J1, self.n_vars, axis=0).reshape(
             self.n_experiments, self.n_vars, self.n_model_terms
@@ -381,6 +413,7 @@ class KOptimality(Objective):
         J = np.sum(J, axis=-1)
 
         return J.flatten()
+
 
 def get_objective_class(objective: str) -> Type:
     objective = objective.lower()

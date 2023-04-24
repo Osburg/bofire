@@ -4,11 +4,18 @@ from formulaic import Formula
 
 from bofire.data_models.domain.api import Domain
 from bofire.data_models.features.api import ContinuousInput, ContinuousOutput
-from bofire.strategies.doe.objective import DOptimality
+from bofire.strategies.doe.objective import (
+    AOptimality,
+    DOptimality,
+    EOptimality,
+    GOptimality,
+    KOptimality,
+    Objective,
+)
 from bofire.strategies.doe.utils import get_formula_from_string
 
 
-def test_DOptimality_model_jacobian_t():
+def test_Objective_model_jacobian_t():
     # "small" model
     domain = Domain(
         input_features=[
@@ -25,12 +32,12 @@ def test_DOptimality_model_jacobian_t():
     f = Formula("x1 + x2 + x3 + x1:x2 + {x3**2}")
     x = np.array([[1, 2, 3]])
 
-    d_optimality = DOptimality(
+    objective = Objective(
         domain=domain,
         model=f,
         n_experiments=1,
     )
-    model_jacobian_t = d_optimality._model_jacobian_t
+    model_jacobian_t = objective._model_jacobian_t
 
     B = np.zeros(shape=(3, 6))
     B[:, 1:4] = np.eye(3)
@@ -44,12 +51,12 @@ def test_DOptimality_model_jacobian_t():
     model_terms = np.array(f, dtype=str)
     x = np.array([[1, 2, 3]])
 
-    d_optimality = DOptimality(
+    objective = Objective(
         domain=domain,
         model=f,
         n_experiments=1,
     )
-    model_jacobian_t = d_optimality._model_jacobian_t
+    model_jacobian_t = objective._model_jacobian_t
     B = np.zeros(shape=(3, 10))
     B[:, 1:4] = np.eye(3)
     B[:, 4:7] = 2 * np.diag(x[0])
@@ -109,12 +116,12 @@ def test_DOptimality_model_jacobian_t():
                 formula += term
     f = Formula(formula[:-3])
     x = np.array([[1, 2, 3, 4, 5]])
-    d_optimality = DOptimality(
+    objective = Objective(
         domain=domain,
         model=f,
         n_experiments=1,
     )
-    model_jacobian_t = d_optimality._model_jacobian_t
+    model_jacobian_t = objective._model_jacobian_t
 
     B = np.array(
         [
@@ -312,6 +319,25 @@ def test_DOptimality_model_jacobian_t():
     )
 
     assert np.allclose(B, model_jacobian_t(x)[0])
+
+
+def test_Objective_convert_input_to_model_tensor():
+    domain = Domain(
+        input_features=[
+            ContinuousInput(
+                key=f"x{i+1}",
+                bounds=(0, 1),
+            )
+            for i in range(3)
+        ],
+        output_features=[ContinuousOutput(key="y")],
+    )
+    model = get_formula_from_string("linear", domain=domain)
+
+    d_optimality = DOptimality(domain=domain, model=model, n_experiments=3)
+    x = np.array([1, 0, 0, 0, 2, 0, 0, 0, 3])
+    X = d_optimality._convert_input_to_model_tensor(x).detach().numpy()
+    assert np.allclose(X, np.array([[1, 1, 0, 0], [1, 0, 2, 0], [1, 0, 0, 3]]))
 
 
 def test_DOptimality_instantiation():
@@ -551,7 +577,7 @@ def test_DOptimality_evaluate():
     assert np.allclose(d_optimality.evaluate(x), -np.log(4) - np.log(1e-7))
 
 
-def test_DOptimality_convert_input_to_model_tensor():
+def test_AOptimality_evaluate():
     domain = Domain(
         input_features=[
             ContinuousInput(
@@ -564,7 +590,123 @@ def test_DOptimality_convert_input_to_model_tensor():
     )
     model = get_formula_from_string("linear", domain=domain)
 
-    d_optimality = DOptimality(domain=domain, model=model, n_experiments=3)
-    x = np.array([1, 0, 0, 0, 2, 0, 0, 0, 3])
-    X = d_optimality._convert_input_to_model_tensor(x).detach().numpy()
-    assert np.allclose(X, np.array([[1, 1, 0, 0], [1, 0, 2, 0], [1, 0, 0, 3]]))
+    a_optimality = AOptimality(domain=domain, model=model, n_experiments=4)
+
+    x = np.array([1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0])
+    assert np.allclose(a_optimality.evaluate(x), 3 * 1.9999991 + 0.9999996)
+
+
+def test_AOptimality_evaluate_jacobian():
+    domain = Domain(
+        input_features=[ContinuousInput(key="x1", bounds=(0, 1))],
+        output_features=[ContinuousOutput(key="y")],
+    )
+    model = get_formula_from_string("linear", domain=domain)
+
+    a_optimality = AOptimality(domain=domain, model=model, n_experiments=2, delta=0)
+
+    x = np.array([1, 0.5])
+
+    def grad(x):
+        return (
+            2
+            * np.array([-(x[0] * x[1] + x[1] ** 2 + 2), (x[0] * x[1] + x[0] ** 2 + 2)])
+            / (x[0] - x[1]) ** 3
+        )
+
+    assert np.allclose(a_optimality.evaluate_jacobian(x), grad(x))
+
+
+def test_EOptimality_evaluate():
+    domain = Domain(
+        input_features=[ContinuousInput(key="x1", bounds=(0, 1))],
+        output_features=[ContinuousOutput(key="y")],
+    )
+    model = get_formula_from_string("linear", domain=domain)
+
+    e_optimality = EOptimality(domain=domain, model=model, n_experiments=2, delta=0)
+
+    x = np.array([1, 0.5])
+
+    min_eigval = 0.5 * (
+        x[0] ** 2
+        - np.sqrt(
+            x[0] ** 4 + 2 * x[0] ** 2 * x[1] ** 2 + 8 * x[0] * x[1] + x[1] ** 4 + 4
+        )
+        + x[1] ** 2
+        + 2
+    )
+
+    assert np.allclose(e_optimality.evaluate(x), -min_eigval)
+
+
+def test_EOptimality_evaluate_jacobian():
+    domain = Domain(
+        input_features=[ContinuousInput(key="x1", bounds=(0, 1))],
+        output_features=[ContinuousOutput(key="y")],
+    )
+    model = get_formula_from_string("linear", domain=domain)
+
+    e_optimality = EOptimality(domain=domain, model=model, n_experiments=2, delta=0)
+
+    x = np.array([1, 0.5])
+
+    def grad(x):
+        temp = np.sqrt(
+            x[0] ** 4 + 2 * x[0] ** 2 * x[1] ** 2 + 8 * x[0] * x[1] + x[1] ** 4 + 4
+        )
+        return np.array(
+            [
+                (x[0] ** 3 + x[0] * x[1] ** 2 + 2 * x[1]) / temp - x[0],
+                (x[1] ** 3 + x[1] * x[0] ** 2 + 2 * x[0]) / temp - x[1],
+            ]
+        )
+
+    assert np.allclose(e_optimality.evaluate_jacobian(x), grad(x))
+
+
+def test_GOptimality_evaluate():
+    domain = Domain(
+        input_features=[ContinuousInput(key="x1", bounds=(0, 1))],
+        output_features=[ContinuousOutput(key="y")],
+    )
+    model = get_formula_from_string("linear", domain=domain)
+
+    g_optimality = GOptimality(domain=domain, model=model, n_experiments=2, delta=0)
+
+    x = np.array([1, 0.5])
+
+    # all eigenvalues are 1 since A = [[1,1],[1,0.5]] is invertible and therefore H = A (A.T A)^-1 A.T = A A^-1 A.T^-1 A.T = 1
+
+    assert np.allclose(g_optimality.evaluate(x), 1)
+
+
+def test_GOptimality_evaluate_jacobian():
+    domain = Domain(
+        input_features=[ContinuousInput(key="x1", bounds=(0, 1))],
+        output_features=[ContinuousOutput(key="y")],
+    )
+    model = get_formula_from_string("linear", domain=domain)
+
+    g_optimality = GOptimality(domain=domain, model=model, n_experiments=2, delta=0)
+
+    x = np.array([1, 0.5])
+
+    # all eigenvalues are 1 since A = [[1,1],[1,0.5]] is invertible and therefore H = A (A.T A)^-1 A.T = A A^-1 A.T^-1 A.T = 1
+    # thus, the jacobian vanishes.
+
+    assert np.allclose(g_optimality.evaluate_jacobian(x), np.zeros(2))
+
+
+def test_KOptimality_evaluate():
+    domain = Domain(
+        input_features=[ContinuousInput(key="x1", bounds=(0, 1))],
+        output_features=[ContinuousOutput(key="y")],
+    )
+    model = get_formula_from_string("linear", domain=domain)
+
+    k_optimality = KOptimality(domain=domain, model=model, n_experiments=2, delta=0)
+
+    x = np.array([1, 0])
+
+    assert np.allclose(k_optimality.evaluate(x), 1.61803399 / 0.61803399)
