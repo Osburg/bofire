@@ -429,7 +429,7 @@ class SpaceFilling(Objective):
         X = self._convert_input_to_tensor(x, requires_grad=True)
         torch.sum(torch.sort(torch.pdist(X))[0][: self.n_experiments]).backward()
 
-        return -X.grad.detach().numpy().flatten() # type: ignore
+        return -X.grad.detach().numpy().flatten()  # type: ignore
 
     def _convert_input_to_tensor(
         self, x: np.ndarray, requires_grad: bool = True
