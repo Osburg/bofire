@@ -1,5 +1,5 @@
 import warnings
-from typing import Callable, Dict, Optional, Union
+from typing import Dict, Optional, Union
 
 import numpy as np
 import pandas as pd
@@ -12,66 +12,26 @@ from bofire.data_models.enum import SamplingMethodEnum
 from bofire.data_models.strategies.api import (
     PolytopeSampler as PolytopeSamplerDataModel,
 )
-from bofire.strategies.api import PolytopeSampler
-from bofire.strategies.doe.jacobian import JacobianForLogdet
+from bofire.strategies.doe.objective import get_objective_class
 from bofire.strategies.doe.utils import (
     constraints_as_scipy_constraints,
     get_formula_from_string,
     metrics,
     nchoosek_constraints_as_bounds,
 )
-
-
-def logD(A: np.ndarray, delta: float = 1e-7) -> float:
-    """Computes the sum of the log of A.T @ A ignoring the smallest num_ignore_eigvals eigenvalues."""
-    X = A.T @ A + delta * np.eye(A.shape[1])
-    return np.linalg.slogdet(X)[1]
-
-
-def get_objective(
-    domain: Domain,
-    model_type: Union[str, Formula],
-    delta: float = 1e-7,
-) -> Callable:
-    """Returns a function that computes the objective value.
-
-    Args:
-        domain (Domain): A domain defining the DoE problem together with model_type.
-        model_type (str or Formula): A formula containing all model terms.
-        delta (float): Regularization parameter for information matrix. Default value is 1e-3.
-
-    Returns:
-        A function computing the objective -logD for a given input vector x
-
-    """
-    D = len(domain.inputs)
-    model_formula = get_formula_from_string(
-        model_type=model_type, rhs_only=True, domain=domain
-    )
-
-    # define objective function
-    def objective(x):
-        # evaluate model terms
-        A = pd.DataFrame(x.reshape(len(x) // D, D), columns=domain.inputs.get_keys())
-        A = model_formula.get_model_matrix(A)
-
-        # compute objective value
-        obj = -logD(A.to_numpy(), delta=delta)
-        return obj
-
-    return objective
+from bofire.strategies.enum import OptimalityCriterionEnum
+from bofire.strategies.samplers.polytope import PolytopeSampler
 
 
 def find_local_max_ipopt(
     domain: Domain,
     model_type: Union[str, Formula],
     n_experiments: Optional[int] = None,
-    tol: float = 0.0,
     delta: float = 1e-7,
     ipopt_options: Dict = {},
-    jacobian_building_block: Optional[Callable] = None,
     sampling: Optional[pd.DataFrame] = None,
     fixed_experiments: Optional[pd.DataFrame] = None,
+    objective: OptimalityCriterionEnum = OptimalityCriterionEnum.D_OPTIMALITY,
 ) -> pd.DataFrame:
     """Function computing a d-optimal design" for a given domain and model.
     Args:
@@ -80,14 +40,12 @@ def find_local_max_ipopt(
             are "linear", "linear-and-interactions", "linear-and-quadratic", "fully-quadratic".
         n_experiments (int): Number of experiments. By default the value corresponds to
             the number of model terms - dimension of ker() + 3.
-        tol (float): Tolerance for linear/NChooseK constraint violation. Default value is 0.
         delta (float): Regularization parameter. Default value is 1e-3.
         ipopt_options (Dict): options for IPOPT. For more information see [this link](https://coin-or.github.io/Ipopt/OPTIONS.html)
-        jacobian_building_block (Callable): Only needed for models of higher order than 3. derivatives
-            of each model term with respect to each input variable.
         sampling (Sampling, np.ndarray): Sampling class or a np.ndarray object containing the initial guess.
         fixed_experiments (pd.DataFrame): dataframe containing experiments that will be definitely part of the design.
             Values are set before the optimization.
+        objective (OptimalityCriterionEnum): OptimalityCriterionEnum object indicating which objective function to use.
     Returns:
         A pd.DataFrame object containing the best found input for the experiments. In general, this is only a
         local optimum.
@@ -151,24 +109,20 @@ def find_local_max_ipopt(
                 .flatten()
             )
 
-    # get objective function
-    objective = get_objective(domain, model_type, delta=delta)
-
-    # get jacobian
+    # get objective function and its jacobian
     model_formula = get_formula_from_string(
         model_type=model_type, rhs_only=True, domain=domain
     )
 
-    J = JacobianForLogdet(
-        domain,
-        model_formula,
-        n_experiments,
-        delta=delta,
-        jacobian_building_block=jacobian_building_block,
+    objective_class = get_objective_class(objective)
+    d_optimality = objective_class(
+        domain=domain, model=model_formula, n_experiments=n_experiments, delta=delta
     )
 
     # write constraints as scipy constraints
-    constraints = constraints_as_scipy_constraints(domain, n_experiments, tol)
+    constraints = constraints_as_scipy_constraints(
+        domain, n_experiments, ignore_nchoosek=True
+    )
 
     # find bounds imposing NChooseK constraints
     bounds = nchoosek_constraints_as_bounds(domain, n_experiments)
@@ -193,13 +147,13 @@ def find_local_max_ipopt(
     #
 
     result = minimize_ipopt(
-        objective,
+        d_optimality.evaluate,
         x0=x0,
         bounds=bounds,
         # "SLSQP" has no deeper meaning here and just ensures correct constraint standardization
         constraints=standardize_constraints(constraints, x0, "SLSQP"),
         options=_ipopt_options,
-        jac=J.jacobian,
+        jac=d_optimality.evaluate_jacobian,
     )
 
     design = pd.DataFrame(
@@ -273,9 +227,7 @@ def get_n_experiments(
     """
     n_experiments_min = (
         len(
-            get_formula_from_string(
-                model_type=model_type, rhs_only=True, domain=domain
-            ).terms
+            get_formula_from_string(model_type=model_type, rhs_only=True, domain=domain)
         )
         + 3
     )

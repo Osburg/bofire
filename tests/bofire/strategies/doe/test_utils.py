@@ -46,8 +46,8 @@ def get_formula_from_string_recursion_limit():
     terms.append("1")
 
     for i in range(351):
-        assert model.terms[i] in terms
-        assert terms[i] in model.terms
+        assert np.array(model, dtype=str)[i] in terms
+        assert terms[i] in model
 
     assert recursion_limit == sys.getrecursionlimit()
 
@@ -61,24 +61,24 @@ def test_get_formula_from_string():
     # linear model
     terms = ["1", "x0", "x1", "x2"]
     model_formula = get_formula_from_string(domain=domain, model_type="linear")
-    assert all(term in terms for term in model_formula.terms)
-    assert all(term in model_formula.terms for term in terms)
+    assert all(term in terms for term in model_formula)
+    assert all(term in np.array(model_formula, dtype=str) for term in terms)
 
     # linear and interaction
     terms = ["1", "x0", "x1", "x2", "x0:x1", "x0:x2", "x1:x2"]
     model_formula = get_formula_from_string(
         domain=domain, model_type="linear-and-interactions"
     )
-    assert all(term in terms for term in model_formula.terms)
-    assert all(term in model_formula.terms for term in terms)
+    assert all(term in terms for term in model_formula)
+    assert all(term in np.array(model_formula, dtype=str) for term in terms)
 
     # linear and quadratic
     terms = ["1", "x0", "x1", "x2", "x0**2", "x1**2", "x2**2"]
     model_formula = get_formula_from_string(
         domain=domain, model_type="linear-and-quadratic"
     )
-    assert all(term in terms for term in model_formula.terms)
-    assert all(term in model_formula.terms for term in terms)
+    assert all(term in terms for term in model_formula)
+    assert all(term in np.array(model_formula, dtype=str) for term in terms)
 
     # fully quadratic
     terms = [
@@ -94,8 +94,8 @@ def test_get_formula_from_string():
         "x2**2",
     ]
     model_formula = get_formula_from_string(domain=domain, model_type="fully-quadratic")
-    assert all(term in terms for term in model_formula.terms)
-    assert all(term in model_formula.terms for term in terms)
+    assert all(term in terms for term in model_formula)
+    assert all(term in np.array(model_formula, dtype=str) for term in terms)
 
     # custom model
     terms_lhs = ["y"]
@@ -105,10 +105,10 @@ def test_get_formula_from_string():
         model_type="y ~ 1 + x0 + x0:x1 + {x0**2}",
         rhs_only=False,
     )
-    assert all(term in terms_lhs for term in model_formula.terms.lhs)
-    assert all(term in model_formula.terms.lhs for term in terms_lhs)
-    assert all(term in terms_rhs for term in model_formula.terms.rhs)
-    assert all(term in model_formula.terms.rhs for term in terms_rhs)
+    assert all(term in terms_lhs for term in model_formula.lhs)
+    assert all(term in str(model_formula.lhs) for term in terms_lhs)
+    assert all(term in terms_rhs for term in model_formula.rhs)
+    assert all(term in np.array(model_formula.rhs, dtype=str) for term in terms_rhs)
 
     # get formula without model: valid input
     model = "x1 + x2 + x3"
@@ -130,8 +130,8 @@ def test_get_formula_from_string():
     terms.append("1")
 
     for i in range(351):
-        assert model.terms[i] in terms
-        assert terms[i] in model.terms
+        assert list(model)[i] in terms
+        assert terms[i] in np.array(model, dtype=str)
 
 
 def test_n_zero_eigvals_unconstrained():
@@ -187,18 +187,18 @@ def test_number_of_model_terms():
     )
 
     formula = get_formula_from_string(domain=domain, model_type="linear")
-    assert len(formula.terms) == 6
+    assert len(formula) == 6
 
     formula = get_formula_from_string(domain=domain, model_type="linear-and-quadratic")
-    assert len(formula.terms) == 11
+    assert len(formula) == 11
 
     formula = get_formula_from_string(
         domain=domain, model_type="linear-and-interactions"
     )
-    assert len(formula.terms) == 16
+    assert len(formula) == 16
 
     formula = get_formula_from_string(domain=domain, model_type="fully-quadratic")
-    assert len(formula.terms) == 21
+    assert len(formula) == 21
 
     # 3 continuous & 2 discrete input_features
     domain = Domain(
@@ -213,18 +213,18 @@ def test_number_of_model_terms():
     )
 
     formula = get_formula_from_string(domain=domain, model_type="linear")
-    assert len(formula.terms) == 6
+    assert len(formula) == 6
 
     formula = get_formula_from_string(domain=domain, model_type="linear-and-quadratic")
-    assert len(formula.terms) == 11
+    assert len(formula) == 11
 
     formula = get_formula_from_string(
         domain=domain, model_type="linear-and-interactions"
     )
-    assert len(formula.terms) == 16
+    assert len(formula) == 16
 
     formula = get_formula_from_string(domain=domain, model_type="fully-quadratic")
-    assert len(formula.terms) == 21
+    assert len(formula) == 21
 
 
 def test_constraints_as_scipy_constraints():
@@ -262,8 +262,8 @@ def test_constraints_as_scipy_constraints():
         assert len(c.ub) == n_experiments
 
     A = np.array([[1, 1, 1, 0, 0, 0], [0, 0, 0, 1, 1, 1]]) / np.sqrt(3)
-    lb = np.array([1, 1]) / np.sqrt(3) - 0.001
-    ub = np.array([1, 1]) / np.sqrt(3) + 0.001
+    lb = np.array([1, 1]) / np.sqrt(3)
+    ub = np.array([1, 1]) / np.sqrt(3)
     assert np.allclose(constraints[0].A, A)
     assert np.allclose(constraints[0].lb, lb)
     assert np.allclose(constraints[0].ub, ub)
@@ -316,7 +316,9 @@ def test_constraints_as_scipy_constraints():
     )
     n_experiments = 1
 
-    constraints = constraints_as_scipy_constraints(domain, n_experiments)
+    constraints = constraints_as_scipy_constraints(
+        domain, n_experiments, ignore_nchoosek=True
+    )
     assert len(constraints) == 0
 
 
@@ -344,12 +346,6 @@ def test_ConstraintWrapper():
                 features=["x1", "x2", "x3", "x4"],
                 jacobian_expression="[2*x1, 2*x2, 2*x3, 2*x4]",
             ),
-            NChooseKConstraint(
-                features=["x1", "x2", "x3", "x4"],
-                max_count=3,
-                min_count=0,
-                none_also_valid=True,
-            ),
             NonlinearEqualityConstraint(
                 expression="x1**2 + x4**2 - 1",
                 features=["x1", "x4"],
@@ -361,7 +357,7 @@ def test_ConstraintWrapper():
     x = np.array([[1, 1, 1, 1], [0.5, 0.5, 0.5, 0.5], [3, 2, 1, 0]]).flatten()
 
     # linear equality
-    c = ConstraintWrapper(domain.constraints[0], domain, tol=0, n_experiments=3)
+    c = ConstraintWrapper(domain.constraints[0], domain, n_experiments=3)
     assert np.allclose(c(x), np.array([1.5, 0.5, 2.5]))
     assert np.allclose(
         c.jacobian(x),
@@ -375,8 +371,8 @@ def test_ConstraintWrapper():
         ),
     )
 
-    # linear inequaity
-    c = ConstraintWrapper(domain.constraints[1], domain, tol=0, n_experiments=3)
+    # linear inequality
+    c = ConstraintWrapper(domain.constraints[1], domain, n_experiments=3)
     assert np.allclose(c(x), np.array([1.5, 0.5, 2.5]))
     assert np.allclose(
         c.jacobian(x),
@@ -391,7 +387,7 @@ def test_ConstraintWrapper():
     )
 
     # nonlinear equality
-    c = ConstraintWrapper(domain.constraints[2], domain, tol=0, n_experiments=3)
+    c = ConstraintWrapper(domain.constraints[2], domain, n_experiments=3)
     assert np.allclose(c(x), np.array([3, 0, 13]))
     assert np.allclose(
         c.jacobian(x),
@@ -405,7 +401,7 @@ def test_ConstraintWrapper():
     )
 
     # nonlinear inequality
-    c = ConstraintWrapper(domain.constraints[3], domain, tol=0, n_experiments=3)
+    c = ConstraintWrapper(domain.constraints[3], domain, n_experiments=3)
     assert np.allclose(c(x), np.array([3, 0, 13]))
     assert np.allclose(
         c.jacobian(x),
@@ -418,13 +414,8 @@ def test_ConstraintWrapper():
         ),
     )
 
-    # nchoosek constraint
-    with pytest.raises(NotImplementedError):
-        c = ConstraintWrapper(domain.constraints[4], domain, tol=0)
-        assert np.allclose(c(x), np.array([1, 0.5, 0]))
-
     # constraint not containing all inputs from domain
-    c = ConstraintWrapper(domain.constraints[5], domain, tol=0, n_experiments=3)
+    c = ConstraintWrapper(domain.constraints[4], domain, n_experiments=3)
     assert np.allclose(c(x), np.array([1, -0.5, 8]))
     assert np.allclose(
         c.jacobian(x),

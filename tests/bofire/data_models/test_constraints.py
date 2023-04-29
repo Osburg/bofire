@@ -167,7 +167,7 @@ def test_constraints_jacobian(constraints, num_candidates):
     returned = constraints.jacobian(candidates)
     assert np.all(
         [
-            returned[i].columns == ["dg/df1", "dg/df2", "dg/df3"]
+            list(returned[i].columns) == ["dg/df1", "dg/df2", "dg/df3"]
             for i, c in enumerate(constraints)
         ]
     )
