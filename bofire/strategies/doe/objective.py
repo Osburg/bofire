@@ -416,10 +416,7 @@ class KOptimality(Objective):
         return J.flatten()
 
 
-# TODO: test
 class SpaceFilling(Objective):
-
-    # TODO: how many values should be taken into account. 1 is not enough. Right now it is n_experiments, this seems to work.
     def evaluate(self, x: np.ndarray) -> float:
         X = self._convert_input_to_tensor(x, requires_grad=False)
         return float(
