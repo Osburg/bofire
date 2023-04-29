@@ -1,5 +1,6 @@
 from enum import Enum
 
+
 class OptimalityCriterionEnum(Enum):
     D_OPTIMALITY = "D_OPTIMALITY"
     E_OPTIMALITY = "E_OPTIMALITY"
