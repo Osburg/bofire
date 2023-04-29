@@ -9,6 +9,7 @@ from formulaic import Formula
 from torch import Tensor
 
 from bofire.data_models.domain.api import Domain
+from bofire.strategies.enum import OptimalityCriterionEnum
 from bofire.utils.torch_tools import tkwargs
 
 
@@ -440,20 +441,18 @@ class SpaceFilling(Objective):
         return torch.tensor(X.values, requires_grad=requires_grad, **tkwargs)
 
 
-def get_objective_class(objective: str) -> Type:
-    objective = objective.lower()
+def get_objective_class(objective: OptimalityCriterionEnum) -> Type:
+    objective = OptimalityCriterionEnum(objective)
 
-    if objective == "d":
+    if objective == OptimalityCriterionEnum.D_OPTIMALITY:
         return DOptimality
-    elif objective == "a":
+    elif objective == OptimalityCriterionEnum.A_OPTIMALITY:
         return AOptimality
-    elif objective == "g":
+    elif objective == OptimalityCriterionEnum.G_OPTIMALITY:
         return GOptimality
-    elif objective == "e":
+    elif objective == OptimalityCriterionEnum.E_OPTIMALITY:
         return EOptimality
-    elif objective == "k":
+    elif objective == OptimalityCriterionEnum.K_OPTIMALITY:
         return KOptimality
-    elif objective == "sf":
+    elif objective == OptimalityCriterionEnum.SPACE_FILLING:
         return SpaceFilling
-    else:
-        raise ValueError(f"No objective type for keyword {objective} is known.")

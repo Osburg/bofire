@@ -19,6 +19,7 @@ from bofire.strategies.doe.utils import (
     metrics,
     nchoosek_constraints_as_bounds,
 )
+from bofire.strategies.enum import OptimalityCriterionEnum
 from bofire.strategies.samplers.polytope import PolytopeSampler
 
 
@@ -30,7 +31,7 @@ def find_local_max_ipopt(
     ipopt_options: Dict = {},
     sampling: Optional[pd.DataFrame] = None,
     fixed_experiments: Optional[pd.DataFrame] = None,
-    objective: str = "d",
+    objective: OptimalityCriterionEnum = OptimalityCriterionEnum.D_OPTIMALITY,
 ) -> pd.DataFrame:
     """Function computing a d-optimal design" for a given domain and model.
     Args:
@@ -114,7 +115,7 @@ def find_local_max_ipopt(
         model_type=model_type, rhs_only=True, domain=domain
     )
 
-    objective_class = get_objective_class(objective=objective)
+    objective_class = get_objective_class(objective)
     d_optimality = objective_class(
         domain=domain, model=model_formula, n_experiments=n_experiments, delta=delta
     )
