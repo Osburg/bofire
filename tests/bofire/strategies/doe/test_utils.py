@@ -321,15 +321,6 @@ def test_constraints_as_scipy_constraints():
     )
     assert len(constraints) == 0
 
-    constraints = constraints_as_scipy_constraints(
-        domain, n_experiments, ignore_nchoosek=False
-    )
-    assert len(constraints) == 1
-    assert isinstance(constraints[0], NonlinearConstraint)
-    assert np.allclose(
-        constraints[0].fun(np.array([1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0])), [2, 0, 0]
-    )
-
 
 def test_ConstraintWrapper():
     # define domain with all types of constraints
@@ -354,12 +345,6 @@ def test_ConstraintWrapper():
                 expression="x1**2 + x2**2 + x3**2 + x4**2 - 1",
                 features=["x1", "x2", "x3", "x4"],
                 jacobian_expression="[2*x1, 2*x2, 2*x3, 2*x4]",
-            ),
-            NChooseKConstraint(
-                features=["x1", "x2", "x3", "x4"],
-                max_count=3,
-                min_count=0,
-                none_also_valid=True,
             ),
             NonlinearEqualityConstraint(
                 expression="x1**2 + x4**2 - 1",
@@ -429,13 +414,8 @@ def test_ConstraintWrapper():
         ),
     )
 
-    # nchoosek constraint
-    c = ConstraintWrapper(domain.constraints[4], domain, n_experiments=3)
-    assert np.allclose(c(x), np.array([1, 1, 0]))
-    assert np.allclose(c.jacobian(x), np.zeros(shape=(3, 12)))
-
     # constraint not containing all inputs from domain
-    c = ConstraintWrapper(domain.constraints[5], domain, n_experiments=3)
+    c = ConstraintWrapper(domain.constraints[4], domain, n_experiments=3)
     assert np.allclose(c(x), np.array([1, -0.5, 8]))
     assert np.allclose(
         c.jacobian(x),
