@@ -3,6 +3,8 @@ import warnings
 from itertools import combinations_with_replacement, product
 from queue import PriorityQueue
 from typing import Dict, List, Optional, Tuple, Union
+from multiprocessing.pool import Pool
+from multiprocessing import cpu_count, Queue
 
 import numpy as np
 import pandas as pd
@@ -21,6 +23,7 @@ from bofire.data_models.strategies.api import (
     PolytopeSampler as PolytopeSamplerDataModel,
 )
 from bofire.strategies.doe.objective import get_objective_class
+from bofire.strategies.doe.doe_design_collection import DoEDesignCollection
 from bofire.strategies.doe.utils import (
     constraints_as_scipy_constraints,
     get_formula_from_string,
@@ -670,3 +673,47 @@ def get_n_experiments(
         )
 
     return n_experiments
+
+
+# TODO: test
+# TODO: support for exhaustive / BaB?
+# TODO: docstring
+def generate_optimal_design_collection(
+    domain: Domain,
+    model_type: Union[str, Formula],
+    n_experiments: Optional[int] = None,
+    delta: float = 1e-7,
+    ipopt_options: Optional[Dict] = None,
+    sampling: Optional[pd.DataFrame] = None,
+    fixed_experiments: Optional[pd.DataFrame] = None,
+    partially_fixed_experiments: Optional[pd.DataFrame] = None,
+    objective: OptimalityCriterionEnum = OptimalityCriterionEnum.D_OPTIMALITY,
+    collection_size: Optional[int] = None,    
+) -> DoEDesignCollection:
+    
+    if collection_size is None:
+        collection_size = cpu_count()
+
+
+    pool = Pool(processes=collection_size)
+
+    designs_async = []
+    for i in range(collection_size):
+        designs_async.append(pool.apply_async(find_local_max_ipopt, args=(domain, model_type, n_experiments, delta, ipopt_options, sampling, fixed_experiments, partially_fixed_experiments, objective)))
+
+    pool.close()
+    pool.join()
+
+    designs = [design.get() for design in designs_async]
+
+    # create design collection as return object
+    model_formula = get_formula_from_string(
+        model_type=model_type, rhs_only=True, domain=domain
+    )
+
+    objective_class = get_objective_class(objective)
+    objective = objective_class(
+        domain=domain, model=model_formula, n_experiments=n_experiments, delta=delta
+    )
+
+    return DoEDesignCollection(designs=designs, optimality_criterion=objective)
